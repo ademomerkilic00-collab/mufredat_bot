@@ -1,0 +1,35 @@
+name: Otomatik Mufredat Botu
+
+on:
+  schedule:
+    # Türkiye saatiyle (UTC+3) 14:00'te çalışması için UTC 11:00 olarak ayarlanmıştır.
+    # Haftanın 1-5 günleri (Pazartesi-Cuma)
+    - cron: '0 11 * * 1-5'
+  
+  # Manuel olarak tetikleyebilmek için
+  workflow_dispatch:
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Depoyu Klonla
+        uses: actions/checkout@v4
+
+      - name: Node.js Kurulumu
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Gerekli Paketleri Yükle
+        run: |
+          npm init -y
+          npm install playwright
+          npx playwright install --with-deps chromium
+
+      - name: Botu Çalıştır
+        run: node mufredat_bot.js
+        env:
+          TUGVA_EMAIL: ${{ secrets.TUGVA_EMAIL }}
+          TUGVA_PASSWORD: ${{ secrets.TUGVA_PASSWORD }}
