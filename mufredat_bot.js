@@ -17,33 +17,35 @@ const { chromium } = require('playwright');
   const page = await context.newPage();
 
   try {
-    await page.goto('https://yazokulu.tugvaistanbul.tr/login');
+    await page.goto('https://yazokulu.tugvaistanbul.tr/login', { waitUntil: 'networkidle' });
     
     // ⚠️ ÇOK ÖNEMLİ: Öğretmen sekmesine tıkla (Varsayılan olarak Başkan seçili geliyor)
     console.log("👆 Öğretmen sekmesi seçiliyor...");
     await page.click('button:has-text("Öğretmen")');
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(1000); // React'in butonu algılaması için kısa bir bekleme
     
     // Giriş bilgilerini doldur
     console.log("🔑 Giriş bilgileri dolduruluyor...");
     await page.fill('input[name="email"]', EMAIL);
     await page.fill('input[name="password"]', PASSWORD);
-    await page.click('button[type="submit"]');
     
-    // Girişin tamamlanmasını bekle
-    await page.waitForLoadState('networkidle');
-    console.log("🔓 Sisteme giriş isteği gönderildi.");
-
-    // Müfredat sayfasına git
-    console.log("📂 Müfredat sayfasına gidiliyor...");
-    await page.goto('https://yazokulu.tugvaistanbul.tr/ogretmen/mufredat');
-    await page.waitForLoadState('networkidle');
+    console.log("🚀 Giriş butonuna basılıyor ve sayfa yönlendirmesi bekleniyor...");
+    await Promise.all([
+      page.waitForNavigation({ timeout: 20000 }).catch(() => {}), // Form submit yönlendirmesini bekle
+      page.click('button[type="submit"]')
+    ]);
+    
+    await page.waitForTimeout(2000); // Yönlendirme sonrası ekstra güvenlik beklemesi
     
     // Eğer hala login sayfasındaysa şifre/email yanlıştır
     if (page.url().includes('login')) {
       throw new Error("❌ Giriş yapılamadı! Lütfen GitHub Secrets bölümündeki TUGVA_EMAIL ve TUGVA_PASSWORD bilgilerinizi doğru yazdığınızdan emin olun.");
     }
-    console.log("🔓 Sisteme başarıyla giriş yapıldı ve Müfredat sayfası açıldı.");
+    console.log("🔓 Sisteme başarıyla giriş yapıldı.");
+
+    // Müfredat sayfasına git
+    console.log("📂 Müfredat sayfasına gidiliyor...");
+    await page.goto('https://yazokulu.tugvaistanbul.tr/ogretmen/mufredat', { waitUntil: 'networkidle' });
 
     // "Bugün" yazan açılır menüyü bul ve tıkla
     console.log("🔍 Bugünkü ders menüsü aranıyor...");
