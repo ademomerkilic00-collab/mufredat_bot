@@ -47,49 +47,61 @@ const { chromium } = require('playwright');
     console.log("📂 Müfredat sayfasına gidiliyor...");
     await page.goto('https://yazokulu.tugvaistanbul.tr/ogretmen/mufredat', { waitUntil: 'networkidle' });
 
-    // "Bugün" yazan açılır menüyü bul ve tıkla
+    // "Bugün" yazan açılır menüyü bul ve tıkla (Eğer zaten açıksa kapatmaması için kontrol ekliyoruz)
     console.log("🔍 Bugünkü ders menüsü aranıyor...");
     const bugunSatiri = page.getByText('Bugün', { exact: false }).first();
-    await bugunSatiri.click({ force: true });
     
-    // Menünün açılması için kısa bir süre bekle
-    await page.waitForTimeout(2000);
+    // Eğer sayfada "1 " yazısı hiç görünmüyorsa sekme kapalı demektir, o zaman tıkla. 
+    // Eğer görünüyorsa zaten açıktır, tıklamaya gerek yok.
+    const dersBirGorunurMu = await page.getByText('1 ', { exact: false }).first().isVisible().catch(() => false);
+    if (!dersBirGorunurMu) {
+        console.log("👆 Menü kapalı, açılıyor...");
+        await bugunSatiri.click({ force: true });
+        await page.waitForTimeout(2000); // Açılma animasyonu için bekle
+    } else {
+        console.log("👍 Menü zaten açık, devam ediliyor.");
+    }
 
     // 4 adet dersi kontrol et ve işaretle
     console.log("📝 Dersler kontrol ediliyor...");
     for (let i = 1; i <= 4; i++) {
       try {
-        // "1 BENİM SAHABEM" gibi başlayan yazıyı bul
+        // "1 ", "2 " şeklinde başlayan yazıları arıyoruz ama bulamazsa 30 saniye değil 3 saniye beklesin (Hızlı geçsin)
         const dersYazisi = page.getByText(new RegExp(`^${i}\\s`), { exact: false }).first();
         
-        // Bu yazının içinde bulunduğu ana kutuyu (card) bulalım ki içinde "İşlendi" yazıyor mu diye bakalım
+        // Bu yazının içinde bulunduğu ana kutuyu (card) bulalım
         const dersKutusu = dersYazisi.locator('xpath=ancestor::div[contains(@class, "rounded") or contains(@class, "border") or contains(@class, "bg-")][1]');
         
-        const icerik = await dersKutusu.innerText();
+        const icerik = await dersKutusu.innerText({ timeout: 3000 });
         
         if (!icerik.includes('İşlendi')) {
           console.log(`  📌 ${i}. Ders işaretleniyor...`);
-          // Kutunun kendisine veya içindeki yazıya tıkla
           await dersYazisi.click({ force: true });
-          await page.waitForTimeout(1000); // Tıklama sonrası küçük bekleme
+          await page.waitForTimeout(1000); 
         } else {
           console.log(`  ✅ ${i}. Ders zaten işlenmiş, atlanıyor.`);
         }
       } catch (e) {
-        console.log(`  ⚠️ ${i}. Ders ekranda bulunamadı.`);
+        console.log(`  ⚠️ ${i}. Ders ekranda bulunamadı (Tasarım değişikliği olabilir).`);
       }
     }
 
     // Kaydet butonuna bas
     console.log("💾 Müfredat kaydediliyor...");
     const kaydetBtn = page.locator('button', { hasText: /Kaydet/i }).first();
-    await kaydetBtn.scrollIntoViewIfNeeded();
-    await kaydetBtn.click({ force: true });
     
-    console.log("⏳ Sisteme işlenmesi bekleniyor...");
-    await page.waitForTimeout(5000);
+    // Butonun ekranda var olup olmadığını hızlıca (3 saniyede) kontrol et
+    const kaydetVarMi = await kaydetBtn.isVisible({ timeout: 3000 }).catch(() => false);
     
-    console.log("🎉 Müfredat başarıyla TÜGVA sistemine kaydedildi!");
+    if (kaydetVarMi) {
+        await kaydetBtn.scrollIntoViewIfNeeded();
+        await kaydetBtn.click({ force: true });
+        console.log("⏳ Sisteme işlenmesi bekleniyor...");
+        await page.waitForTimeout(5000);
+        console.log("🎉 Müfredat başarıyla TÜGVA sistemine kaydedildi!");
+    } else {
+        console.log("⚠️ Kaydet butonu bulunamadı, değişiklik yapılmadı.");
+    }
 
   } catch (err) {
     console.error("❌ HATA OLUŞTU:", err);
