@@ -20,8 +20,8 @@ const { chromium } = require('playwright');
     await page.goto('https://yazokulu.tugvaistanbul.tr/login');
     
     // Giriş bilgilerini doldur
-    await page.fill('input[name="_1_email"]', EMAIL);
-    await page.fill('input[name="_1_password"]', PASSWORD);
+    await page.fill('input[name="email"]', EMAIL);
+    await page.fill('input[name="password"]', PASSWORD);
     await page.click('button[type="submit"]');
     
     // Girişin tamamlanmasını bekle
