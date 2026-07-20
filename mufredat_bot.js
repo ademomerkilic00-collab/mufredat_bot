@@ -62,33 +62,37 @@ const { chromium } = require('playwright');
         console.log("👍 Menü zaten açık, devam ediliyor.");
     }
 
-    // 4 adet dersi kontrol et ve işaretle
+    // Dersleri bul ve işaretle
     console.log("📝 Dersler kontrol ediliyor...");
-    for (let i = 1; i <= 4; i++) {
-      try {
-        // "1 ", "2 " şeklinde başlayan yazıları arıyoruz ama bulamazsa 30 saniye değil 3 saniye beklesin (Hızlı geçsin)
-        const dersYazisi = page.getByText(new RegExp(`^${i}\\s`), { exact: false }).first();
-        
-        // Bu yazının içinde bulunduğu ana kutuyu (card) bulalım
-        const dersKutusu = dersYazisi.locator('xpath=ancestor::div[contains(@class, "rounded") or contains(@class, "border") or contains(@class, "bg-")][1]');
-        
-        const icerik = await dersKutusu.innerText({ timeout: 3000 });
-        
-        if (!icerik.includes('İşlendi')) {
-          console.log(`  📌 ${i}. Ders işaretleniyor...`);
-          await dersYazisi.click({ force: true });
-          await page.waitForTimeout(1000); 
-        } else {
-          console.log(`  ✅ ${i}. Ders zaten işlenmiş, atlanıyor.`);
+    
+    // Sahnede açık olan (görünen) "İşlenmedi" yazılarını bul
+    const islenmemisDersler = await page.locator('text="İşlenmedi"').all();
+    let islemYapildi = false;
+    
+    for (let i = 0; i < islenmemisDersler.length; i++) {
+        if (await islenmemisDersler[i].isVisible()) {
+            console.log(`  📌 İşlenmemiş bir ders bulundu, işaretleniyor...`);
+            
+            // Yazının bulunduğu ana karta tıklıyoruz
+            const kart = islenmemisDersler[i].locator('xpath=ancestor::div[contains(@class, "rounded") or contains(@class, "border")][1]');
+            try {
+                await kart.click({ force: true });
+            } catch(e) {
+                await islenmemisDersler[i].click({ force: true });
+            }
+            await page.waitForTimeout(1000);
+            islemYapildi = true;
         }
-      } catch (e) {
-        console.log(`  ⚠️ ${i}. Ders ekranda bulunamadı (Tasarım değişikliği olabilir).`);
-      }
+    }
+
+    if (!islemYapildi) {
+        console.log("  ✅ Ekranda işlenmemiş ders bulunamadı (Tümü zaten işlenmiş olabilir).");
     }
 
     // Kaydet butonuna bas
     console.log("💾 Müfredat kaydediliyor...");
-    const kaydetBtn = page.locator('button', { hasText: /Kaydet/i }).first();
+    // Sadece görünür olan Kaydet butonunu bul (Açık olan sekmedeki buton)
+    const kaydetBtn = page.locator('button', { hasText: /Kaydet/i }).locator('visible=true').first();
     
     // Butonun ekranda var olup olmadığını hızlıca (3 saniyede) kontrol et
     const kaydetVarMi = await kaydetBtn.isVisible({ timeout: 3000 }).catch(() => false);
