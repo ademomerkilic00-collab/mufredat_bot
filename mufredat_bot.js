@@ -65,20 +65,20 @@ const { chromium } = require('playwright');
     // Dersleri bul ve işaretle
     console.log("📝 Dersler kontrol ediliyor...");
     
-    // Sahnede içinde "İşlenmedi" yazan butonları bul
-    const islenmemisDersButonlari = await page.locator('button:has-text("İşlenmedi")').all();
+    // Sahnede içinde "İşlenmedi" yazan butonları say
+    let islenmemisKalan = await page.locator('button:has-text("İşlenmedi")').count();
     let islemYapildi = false;
     
-    for (let i = 0; i < islenmemisDersButonlari.length; i++) {
-        const btn = islenmemisDersButonlari[i];
-        if (await btn.isVisible()) {
-            console.log(`  📌 İşlenmemiş bir ders bulundu, işaretleniyor...`);
-            
-            // force: true KULLANMIYORUZ! Çünkü React'in tıklamayı doğru algılaması lazım
-            await btn.click();
-            await page.waitForTimeout(1000); // Tıklama sonrası React'in state'i güncellemesi için bekle
-            islemYapildi = true;
-        }
+    // İşlenmemiş ders kaldığı sürece hep ilkine tıkla (Çünkü tıkladıkça sayı azalır ve sıra kayar)
+    while (islenmemisKalan > 0) {
+        console.log(`  📌 Kalan ${islenmemisKalan} işlenmemiş ders işaretleniyor...`);
+        
+        const btn = page.locator('button:has-text("İşlenmedi")').first();
+        await btn.click();
+        await page.waitForTimeout(1000); // Tıklama sonrası React'in state'i güncellemesi için bekle
+        
+        islemYapildi = true;
+        islenmemisKalan = await page.locator('button:has-text("İşlenmedi")').count();
     }
 
     if (!islemYapildi) {
