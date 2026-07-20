@@ -25,13 +25,19 @@ const { chromium } = require('playwright');
     await page.click('button[type="submit"]');
     
     // Girişin tamamlanmasını bekle
-    await page.waitForURL('https://yazokulu.tugvaistanbul.tr/ogretmen**', { timeout: 15000 });
-    console.log("🔓 Sisteme başarıyla giriş yapıldı.");
+    await page.waitForLoadState('networkidle');
+    console.log("🔓 Sisteme giriş isteği gönderildi.");
 
     // Müfredat sayfasına git
     console.log("📂 Müfredat sayfasına gidiliyor...");
     await page.goto('https://yazokulu.tugvaistanbul.tr/ogretmen/mufredat');
     await page.waitForLoadState('networkidle');
+    
+    // Eğer hala login sayfasındaysa şifre/email yanlıştır
+    if (page.url().includes('login')) {
+      throw new Error("❌ Giriş yapılamadı! Lütfen GitHub Secrets bölümündeki TUGVA_EMAIL ve TUGVA_PASSWORD bilgilerinizi doğru yazdığınızdan emin olun.");
+    }
+    console.log("🔓 Sisteme başarıyla giriş yapıldı ve Müfredat sayfası açıldı.");
 
     // "Bugün" yazan açılır menüyü bul ve tıkla
     console.log("🔍 Bugünkü ders menüsü aranıyor...");
