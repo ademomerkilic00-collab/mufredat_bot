@@ -65,46 +65,38 @@ const { chromium } = require('playwright');
     // Dersleri bul ve işaretle
     console.log("📝 Dersler kontrol ediliyor...");
     
-    // Sahnede açık olan (görünen) "İşlenmedi" yazılarını bul
-    const islenmemisDersler = await page.locator('text="İşlenmedi"').all();
+    // Sahnede içinde "İşlenmedi" yazan butonları bul
+    const islenmemisDersButonlari = await page.locator('button:has-text("İşlenmedi")').all();
     let islemYapildi = false;
     
-    for (let i = 0; i < islenmemisDersler.length; i++) {
-        if (await islenmemisDersler[i].isVisible()) {
+    for (let i = 0; i < islenmemisDersButonlari.length; i++) {
+        const btn = islenmemisDersButonlari[i];
+        if (await btn.isVisible()) {
             console.log(`  📌 İşlenmemiş bir ders bulundu, işaretleniyor...`);
             
-            // Yazının bulunduğu ana karta tıklıyoruz
-            const kart = islenmemisDersler[i].locator('xpath=ancestor::div[contains(@class, "rounded") or contains(@class, "border")][1]');
-            try {
-                await kart.click({ force: true });
-            } catch(e) {
-                await islenmemisDersler[i].click({ force: true });
-            }
-            await page.waitForTimeout(1000);
+            // force: true KULLANMIYORUZ! Çünkü React'in tıklamayı doğru algılaması lazım
+            await btn.click();
+            await page.waitForTimeout(1000); // Tıklama sonrası React'in state'i güncellemesi için bekle
             islemYapildi = true;
         }
     }
 
     if (!islemYapildi) {
         console.log("  ✅ Ekranda işlenmemiş ders bulunamadı (Tümü zaten işlenmiş olabilir).");
-    }
-
-    // Kaydet butonuna bas
-    console.log("💾 Müfredat kaydediliyor...");
-    // Sadece görünür olan Kaydet butonunu bul (Açık olan sekmedeki buton)
-    const kaydetBtn = page.locator('button', { hasText: /Kaydet/i }).locator('visible=true').first();
-    
-    // Butonun ekranda var olup olmadığını hızlıca (3 saniyede) kontrol et
-    const kaydetVarMi = await kaydetBtn.isVisible({ timeout: 3000 }).catch(() => false);
-    
-    if (kaydetVarMi) {
-        await kaydetBtn.scrollIntoViewIfNeeded();
-        await kaydetBtn.click({ force: true });
+    } else {
+        // Kaydet butonuna bas
+        console.log("💾 Müfredat kaydediliyor...");
+        
+        const kaydetBtn = page.locator('button', { hasText: /Kaydet/i }).first();
+        
+        // force: true KULLANMIYORUZ! Çünkü buton derslere tıklanana kadar "disabled" (pasif) durumda.
+        // Playwright normal click() ile butonun aktif (enabled) olmasını otomatik bekler.
+        console.log("⏳ Kaydet butonunun aktifleşmesi bekleniyor ve tıklanıyor...");
+        await kaydetBtn.click();
+        
         console.log("⏳ Sisteme işlenmesi bekleniyor...");
         await page.waitForTimeout(5000);
         console.log("🎉 Müfredat başarıyla TÜGVA sistemine kaydedildi!");
-    } else {
-        console.log("⚠️ Kaydet butonu bulunamadı, değişiklik yapılmadı.");
     }
 
   } catch (err) {
