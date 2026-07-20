@@ -19,7 +19,13 @@ const { chromium } = require('playwright');
   try {
     await page.goto('https://yazokulu.tugvaistanbul.tr/login');
     
+    // ⚠️ ÇOK ÖNEMLİ: Öğretmen sekmesine tıkla (Varsayılan olarak Başkan seçili geliyor)
+    console.log("👆 Öğretmen sekmesi seçiliyor...");
+    await page.click('button:has-text("Öğretmen")');
+    await page.waitForTimeout(1000);
+    
     // Giriş bilgilerini doldur
+    console.log("🔑 Giriş bilgileri dolduruluyor...");
     await page.fill('input[name="email"]', EMAIL);
     await page.fill('input[name="password"]', PASSWORD);
     await page.click('button[type="submit"]');
